@@ -53,5 +53,51 @@ def test_1p2():
     plot1(plots, "temp")
 
 
+# ===================================
+
+
+@partial(jax.vmap, in_axes=(0, None, None))
+def find_STA_window(t_i, s_t, tau):
+    # equivalent to s_t[t_i - tau : t_i]
+    return jax.lax.dynamic_slice_in_dim(s_t, t_i - tau, tau)
+
+
+def find_STA(s_t, t_i, tau):
+    valid_t_i = t_i[t_i >= tau]
+    windows = find_STA_window(valid_t_i, s_t, tau)
+    return windows.mean(0)
+
+
+def find_Q_rs(r, s):
+    return jnp.convolve(r, s[::-1], mode="same")
+
+
+def test_1p3():
+    key = random.PRNGKey(42)
+    key2 = random.PRNGKey(1)
+    duration, dt = 10, 1e-3
+    T = int(duration / dt)
+    tau = 50
+
+    s = random.normal(key, (T,))  # white noise
+
+    x = jnp.linspace(0, tau, tau)
+    true_feature = jnp.exp(-((x - 20) ** 2) / (2 * 5**2))
+    r = jnp.convolve(s, true_feature, mode="full")[:T]
+    r = jax.nn.relu(r)
+    spikes = random.bernoulli(key2, r * dt * 100)
+    t_i = jnp.where(spikes)[0]
+
+    STA = find_STA(s, t_i, tau)
+    plots = {
+        "stimulus": s,
+        "true_features": true_feature,
+        "firing rate": r,
+        "spikes": spikes,
+        "STA": STA,
+    }
+    plot1(plots, "temp2")
+
+
 if __name__ == "__main__":
-    test_1p2()
+    test_1p3()

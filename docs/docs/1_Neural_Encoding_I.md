@@ -32,3 +32,44 @@ w(\tau) = [\alpha^{2} \tau \exp(-\alpha\tau)]_{+} $$
 | **Gaussian** | $f(s) = r_{max} \exp \left[ -\frac{1}{2} \left( \frac{s - s_{max}}{\sigma_f} \right)^2 \right]$ | Orientation in V1 |
 | **Cosine** | $f(s) = [r_0 + (r_{max} - r_0) \cos(s - s_{max})]_+$ | Reaching angle in M1 |
 | **Sigmoid** | $f(s) = \frac{r_{max}}{1 + \exp((s_{1/2} - s)/\Delta_s)}$ | Retinal disparity |
+
+
+
+
+## 1.3 What Makes a Neuron Fire?
+
+- Traditionally, neuroscience looks at how a **stimulus** causes a **response** (Encoding). This chapter reverses that question: given that a neuron just fired a spike, what did the world look like just a moment ago? This helps us identify the specific features that a neuron is "tuned" to detect.
+
+- **Dynamic Range & Adaptation**: Neurons face a massive range of inputs (e.g., from a single photon to millions). To handle this, they respond to **changes** rather than steady states
+
+- **Weber’s Law**: The "just noticeable difference" ($\Delta s$) is proportional to the stimulus intensity ($s$): 
+
+$$ \Delta s/s = \text{constant} $$
+ 
+- **Fechner’s Law**: Perceived intensity follows the logarithm of the actual intensity
+
+$$ p \propto \log(s) $$ 
+
+- **Simplification**: We often define $s(t)$ so its time-average is $0$, focusing only on the "fluctuations" around the mean
+
+- **Spike-Triggered Average (STA)** is the "average profile" of the stimulus at time $\tau$ before a spike
+    - **$t_i$**: The exact time of the $i$-th spike
+    - **$\tau$**: The look-back time (delay)
+
+$$ C(\tau) = \left\langle \frac{1}{n} \sum_{i=1}^{n} s(t_i - \tau) \right\rangle \\[5pt]
+= \frac{1}{\langle n \rangle} \int_{0}^{T} dt \, r(t) s(t-\tau)
+= \frac{1}{\langle r \rangle} Q_{rs}(-\tau)
+$$
+
+-  **Correlation Function Definition**:
+
+$$ Q_{rs}(\tau) := \frac{1}{T} \int_{0}^{T} dt ~ r(t) s(t+\tau) $$
+
+- To find out what a neuron truly likes, we need to test it with everything at once. **White noise** is a stimulus where the value at one time is completely uncorrelated with any other time.
+    - **The Advantage**: It has a "flat power spectrum," meaning it tests the neuron at all frequencies with equal weight.
+    - **Autocorrelation** $ Q_{ss}(\tau) = \sigma_s^2 \delta(\tau) $  : For white noise, the stimulus only "matches" itself at the exact same moment 
+
+- **Multi-Spike Triggers**: Do "Bursts" mean something?
+    - Sometimes a single spike doesn't tell the whole story. We can calculate the average stimulus triggered by a **pair** of spikes separated by time $\Delta t$
+    - **Independent Spikes**: If the spikes are far apart (e.g., 10 ms), the two-spike average looks like two single-spike averages added together
+    - **Synergy**: If they are very close (e.g., 5 ms), the average stimulus is different from the sum of two spikes, meaning the "burst" signals something unique that a single spike cannot
