@@ -31,7 +31,7 @@ def spikes_to_rates(spikes, kernel):
 
 def test_1p2():
     key = random.PRNGKey(42)
-    dt, duration = 1e-3, 1
+    dt, duration = 1e-3, 10
     t = jnp.arange(0, duration, dt)
     alpha = 100
     n_trials = 100
@@ -44,11 +44,15 @@ def test_1p2():
     spikes = poisson_spikes(keys, true_rates, dt)
     rates = spikes_to_rates(spikes, kernel) / dt  # scale by 1/dt to get Hz
 
+    spike_times = t[spikes[0] > 0]
+    ISI = jnp.diff(spike_times)
+
     plots = {
         "true_rates": true_rates,
         "kernel": kernel,
         "spikes[0]": spikes[0],
         "rates.mean(0)": rates.mean(0),
+        "Inter_Spike_Interval.hist": ISI,
     }
     plot1(plots, "temp")
 
@@ -100,4 +104,4 @@ def test_1p3():
 
 
 if __name__ == "__main__":
-    test_1p3()
+    test_1p2()

@@ -73,3 +73,43 @@ $$ Q_{rs}(\tau) := \frac{1}{T} \int_{0}^{T} dt ~ r(t) s(t+\tau) $$
     - Sometimes a single spike doesn't tell the whole story. We can calculate the average stimulus triggered by a **pair** of spikes separated by time $\Delta t$
     - **Independent Spikes**: If the spikes are far apart (e.g., 10 ms), the two-spike average looks like two single-spike averages added together
     - **Synergy**: If they are very close (e.g., 5 ms), the average stimulus is different from the sum of two spikes, meaning the "burst" signals something unique that a single spike cannot
+
+
+
+
+
+
+## 1.4 Spike-Train Statistics
+
+- The Poisson Process Model
+    - The fundamental assumption of a Poisson process is that each spike is generated independently of all others. This means the probability of a spike occurring at any given time depends only on the firing rate, $r(t)$, and not on the history of previous spikes
+
+- To see if a natural phenomenon is Poisson, ask: **"Does the timing of the last event change the probability of the next one?"**
+    - **No:** It’s Poisson
+    - **Yes, it makes it less likely:** It’s a Renewal Process (more regular)
+    - **Yes, it makes it more likely:** It’s a Hawkes/Clustered Process (more bursty)
+
+- **Spike Count Probability (Poisson Distribution):** The probability of observing exactly $n$ spikes in an interval of duration $T$ for a constant rate $r$ is:
+
+$$ P_T[n] = \frac{(rT)^n}{n!} \exp(-rT) $$
+
+- **Mean and Variance:** For a Poisson process, the mean number of spikes $\langle n \rangle$ and the variance $\sigma_n^2$ are equal:
+
+$$ \langle n \rangle = \sigma_n^2 = rT $$
+
+- **Inter-Spike Interval (ISI) Distribution:** The time interval $\tau$ between successive spikes follows an exponential distribution:
+
+$$ p[\tau] = r \exp(-r\tau) $$
+
+- **Coefficient of Variation ($C_V$):** The ratio of the standard deviation of the ISIs to their mean. For a Poisson process, $C_V = 1$
+
+- While the Poisson model is a useful approximation, real neurons often deviate from it due to biological constraints:
+    - **Refractoriness:** Real neurons have a "refractory period" after firing during which they cannot fire again immediately. This makes very short inter-spike intervals less likely than a Poisson model predicts
+    - **Gamma Distribution:** To better account for refractoriness, ISI data is often fitted to a gamma distribution rather than an exponential one:
+
+$$ p[\tau] = \frac{r(r\tau)^k \exp(-r\tau)}{k!} $$
+ 
+- **Variability Sources:** In vitro (in a dish), neurons can fire very regularly, but in vivo (in a living brain), they show the high variability characteristic of Poisson-like processes. This suggests the variability arises from the complex network of synaptic inputs rather than the spike-generation mechanism itself
+
+
+
