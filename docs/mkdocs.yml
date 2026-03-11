@@ -1,0 +1,17 @@
+site_name: Theoretical Neuroscience
+
+theme:
+  name: material
+
+markdown_extensions:
+  - pymdownx.arithmatex:
+      generic: true
+
+extra_javascript:
+  - https://unpkg.com/katex@0.16.7/dist/katex.min.js
+  - https://unpkg.com/katex@0.16.7/dist/contrib/auto-render.min.js
+  - js/katex.js
+
+extra_css:
+  - https://unpkg.com/katex@0.16.7/dist/katex.min.css
+  - js/main.css
