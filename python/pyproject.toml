@@ -1,7 +1,7 @@
 [project]
 authors = [{name = "Ricky Ding", email = "e0134117@u.nus.edu"}]
 name = "theoretical-neuroscience"
-version = "0.0.1"
+version = "0.0.2"
 description = "???"
 dependencies = [
     "jax",
@@ -29,7 +29,7 @@ flake8 = "*"
 theoretical-neuroscience = { path = ".", editable = true }
 
 [tool.pixi.tasks]
-build = "python -m build"
+build = "rm -rf dist/ && python -m build"
 publish = "python -m twine upload dist/*"
 test = "pytest tests/"
 clean = "isort . --skip .pixi && black . --exclude .pixi && flake8 . --exclude .pixi"

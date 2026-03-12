@@ -1,6 +1,8 @@
 
 # 1 Neural Encoding I
 
+[**code**](https://github.com/NeuroAI-Research/theoretical-neuroscience/blob/main/python/src/theoretical_neuroscience/m1_neural_encoding.py)
+
 ## 1.2 Spike Trains and Firing Rates
 
 - **Neural Response Function**: a sequence of $n$ spikes (Dirac delta) at times $t_i$
@@ -113,3 +115,25 @@ $$ p[\tau] = \frac{r(r\tau)^k \exp(-r\tau)}{k!} $$
 
 
 
+
+## 1.5 The Neural Code
+
+- Problem 1: The "Messy" Brain (Reliability vs. Noise)
+    - **The Conflict:** If you poke a single neuron in a dish, it is a precision instrument. It fires perfectly timed pulses. But inside a living, breathing brain, it looks like absolute chaos—the timing of the spikes seems random, like "noise."
+    - **The 2001 Story:** The book argues that this "noise" isn't a flaw in the neuron. It's because the neuron is being bombarded by thousands of other cells. The "randomness" is a property of the *network*, not the *hardware*
+    - **The Modern Story:** We no longer think of that "noise" as a bad thing. Modern neuroscience sees it as **Probabilistic Coding**. The brain isn't just sending a "Yes/No" signal; it’s sending an estimate of **uncertainty**. That "messiness" is actually the brain saying, *"I think I see a cat, but I'm only 70% sure."* 
+    
+- Problem 2: The "Speed" Paradox (Rate vs. Timing)
+    - **The Conflict:** Does the brain care about the *average number* of spikes (Rate Coding), or the *exact millisecond* they happen (Temporal Coding)?
+    - **The 2001 Story:** The text shows that while "Rate" is easy to measure, "Timing" is often more efficient. It highlights the **Hippocampal Phase Code**, where a neuron’s meaning changes based on exactly *when* it fires relative to a background brain wave (the theta rhythm)
+    - **The Modern Story:** We’ve moved into **Latency Coding**. We now know that for lightning-fast decisions (like a professional athlete reacting to a ball), the brain doesn't have time to "count" spikes. It uses the **Time-to-First-Spike**. The first neuron to fire "wins" the argument. This is the secret behind the speed of both human brains and the newest "Spiking" AI chips
+
+- Problem 3: The "Unit of Thought" (Single vs. Group)
+    - **The Conflict:** Is one neuron a "word," or is it just a single "letter" in a much bigger sentence?
+    - **The 2001 Story:** The book investigates **Correlation Codes** — whether neurons work in pairs or groups. It found that while group patterns exist, looking at individual neurons still gives you about 90% of the story
+    - **The Modern Story:** We now believe the 2001 view was too limited. We now look at **Neural Manifolds**. Imagine 1,000 neurons as 1,000 people in a stadium. You don't learn much by watching one person. But if you look at the "Wave" moving through the crowd, you see a clear, geometric shape. The "Code" is actually the **shape of the movement** of the whole group, which remains stable even if individual people (neurons) are doing different things
+
+- Problem 4: What is the Brain actually doing? (Detection vs. Prediction)
+    - **The Conflict:** Is the brain just a "tape recorder" of the world, or is it something more?
+    - **The 2001 Story:** The book treats neurons as **Feature Detectors**. Their job is to see a stimulus (like a line or a color) and report it to the next layer of the brain.
+    - **The Modern Story:** This has been totally flipped. We now call it **Predictive Coding**. The brain doesn't "wait" for the world to happen. It is a **Prediction Machine** that is constantly "hallucinating" what it expects to see next. Neurons mostly fire when they are **surprised**. If you see what you expected, your neurons stay quiet to save energy. You only "hear" from them when your internal model of the world is wrong
