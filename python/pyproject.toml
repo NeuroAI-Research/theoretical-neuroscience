@@ -6,6 +6,7 @@ description = "???"
 dependencies = [
     "jax",
     "matplotlib",
+    "opencv-python",
 ]
 requires-python = ">=3.9"
 

@@ -12,17 +12,19 @@ def plot1(data: D_TYPE, id, sort=False, C=2, bins=200, n_std=3):
     R = math.ceil(len(data) / C)
     plt.figure(figsize=(4 * C, 3 * R))
     i = 0
-    for k, v0 in data.items():
-        v = v0.flatten()
+    for k, v in data.items():
         i += 1
         plt.subplot(R, C, i)
-        title = f"{k} {v0.shape}"
+        title = f"{k} {v.shape}"
         if ".hist" in k:
+            v = v.flatten()
             mu, std = v.mean(), v.std()
             bins_k = min(len(v), bins)
             range = [mu - std * n_std, mu + std * n_std]
             plt.hist(v, bins_k, range=range)
-            title += f"\n mu={mu:.0e}, std={std:.0e}"
+            title += f"\n mu={mu:.2g}, std={std:.2g}"
+        elif ".img" in k:
+            plt.imshow(v, cmap="gray")
         else:
             plt.plot(v)
         plt.title(title)
