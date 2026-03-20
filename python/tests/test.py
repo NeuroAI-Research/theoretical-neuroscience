@@ -50,6 +50,17 @@ def conv_2d(stimulus: jnp.ndarray, kernel_2d: jnp.ndarray):
     return s2.squeeze()
 
 
+def center_surround_kernel(sig_cen=1, sig_sur=3, B=1):
+    x = jnp.linspace(-10, 10, 21)
+    x, y = jnp.meshgrid(x, x)
+    r2 = x**2 + y**2
+
+    def gau_2d(s):
+        return 1 / (2 * jnp.pi * s**2) * jnp.exp(-r2 / (2 * s**2))
+
+    return gau_2d(sig_cen) - B * gau_2d(sig_sur)
+
+
 def retinal_step(state, frame, kernel_2d, r0=0):
     key = state
 
@@ -80,9 +91,10 @@ def retinal_step(state, frame, kernel_2d, r0=0):
 
 
 def demo_retinal_step():
-    path = "./data/eye.mp4"
+    path = "./data/cat_dance.mp4"
     key = PRNGKey(42)
-    kernel_2d = jnp.array([[0, -1, 0], [-1, 4, -1], [0, -1, 0]], dtype=jnp.float32)
+    # kernel_2d = jnp.array([[0, -1, 0], [-1, 4, -1], [0, -1, 0]], dtype=jnp.float32)
+    kernel_2d = center_surround_kernel()
     vm = VideoMaker("4_demo_retinal_step.mp4")
 
     for frame in read_video(path):
@@ -96,9 +108,9 @@ def demo_retinal_step():
 # ==========================
 
 
-def gabor_kernel_2d(theta, size=21, sigma=3, k=0.5, phi=0):
+def gabor_kernel_2d(theta=0, phi=0, k=0.5, sigma=3, size=21):
     x = jnp.linspace(-size // 2, size // 2, size)
-    y, x = jnp.meshgrid(x, x)
+    x, y = jnp.meshgrid(x, x)
     sin, cos = jnp.sin(theta), jnp.cos(theta)
     # rotate coordinates for orientation selectivity
     xr = x * cos + y * sin
@@ -115,7 +127,7 @@ def temporal_kernel(T=50, dt=0.01, alpha=1 / 0.015):
     return alpha * jnp.exp(-at) * (A - B)
 
 
-def v1_layer_step(key, prev_data, retina_out, kernel_2d, r_fast=0.6, r_slow=0.9):
+def v1_simple_step(key, prev_data, retina_out, kernel_2d, r_fast=0.6, r_slow=0.9):
     spatial_res = conv_2d(retina_out, kernel_2d)
     L_fast = r_fast * prev_data["L_fast"] + (1 - r_fast) * spatial_res
     L_slow = r_slow * prev_data["L_slow"] + (1 - r_slow) * spatial_res
@@ -135,7 +147,7 @@ def v1_layer_step(key, prev_data, retina_out, kernel_2d, r_fast=0.6, r_slow=0.9)
     return next_key, data
 
 
-def v1_layer_batch(retina_out, kernel_2d, kernel_time):
+def v1_simple_batch(retina_out, kernel_2d, kernel_time):
     spatial_res = vmap(conv_2d, in_axes=(0, None))(retina_out, kernel_2d)
 
     def conv_time(pixel_hist):
@@ -145,6 +157,14 @@ def v1_layer_batch(retina_out, kernel_2d, kernel_time):
     L = conv_time(spatial_res).transpose(2, 0, 1)
     r = relu(L) ** 2
     return r
+
+
+def v1_complex_batch(retina_out, kernel_2d, kernel_time):
+    simp_r = vmap(v1_simple_batch, in_axes=(None, 0, None))(
+        retina_out, kernel_2d, kernel_time
+    )
+    comp_r = jnp.sum(simp_r, axis=0)
+    return simp_r, comp_r
 
 
 def demo_v1_step():
@@ -159,7 +179,7 @@ def demo_v1_step():
     for frame in read_video("./data/cat_dance.mp4"):
         frame = frame_to_jax(frame, size)
         key, d1 = retinal_step(key, frame, retina_kernel_2d)
-        key, d2 = v1_layer_step(key, d2, frame, kernel_2d)
+        key, d2 = v1_simple_step(key, d2, frame, kernel_2d)
         vm.add(d2)
     vm.release()
 
@@ -170,12 +190,17 @@ def demo_v1_batch():
     for frame in read_video("./data/cat_dance.mp4"):
         frames.append(frame_to_jax(frame, size))
     frames = jnp.array(frames)
-    kernel_2d = gabor_kernel_2d(theta=jnp.pi / 4)  # 45-degree detector
+
+    phases = jnp.arange(4) * jnp.pi / 2
+    kernel_2d = vmap(lambda p: gabor_kernel_2d(phi=p))(phases)
     kernel_time = temporal_kernel()
-    firing_rate = v1_layer_batch(frames, kernel_2d, kernel_time)
+
+    simp_r, comp_r = v1_complex_batch(frames, kernel_2d, kernel_time)
+
     vm = VideoMaker("5_demo_v1_batch.mp4")
-    for s, r in zip(frames, firing_rate):
-        vm.add({"stimulus": s, "firing_rate": r})
+    for t in range(len(frames)):
+        plots1 = {f"simple_cell_{k}": simp_r[k, t] for k in range(len(phases))}
+        vm.add({"stimulus": frames[t], **plots1, "complex_cell": comp_r[t]})
     vm.release()
 
 

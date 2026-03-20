@@ -80,3 +80,62 @@ $$ r(t) = [\text{ReLU}(L(t))]^2 \\[5pt]
 | **Memory/Adaptation** | Synaptic Fatigue/Inhibition | Biphasic $D_t$ |
 | **Firing Threshold** | Voltage-gated Channels | Rectification |
 | **Noise** | Neurotransmitter release | Poisson Process |
+
+
+
+
+
+
+## 2.5 Static Nonlinearities: Complex Cells
+
+- **Core Idea**: Simple cells are linear and "picky" about position (phase). Complex cells achieve **position invariance** (or spatial-phase invariance). They respond to an orientation regardless of exactly where it falls in the receptive field.
+
+- **Quadrature Pair ($L_1, L_2$):** Two simple cells $90^\circ$ apart ($\phi=0$ and $\phi=\pi/2$). 
+    - $L_1 \propto \cos(\phi - \Phi) \qquad L_2 \propto \sin(\phi - \Phi)$
+
+- **The Energy Model:** $r \approx L_1^2 + L_2^2$.
+    - Because $\cos^2(\theta) + \sin^2(\theta) = 1$, the phase $\Phi$ (position) is mathematically cancelled out.
+
+- **Frequency Doubling:** If the stimulus flickers at frequency $\omega$, the $L^2$ term causes the cell to fire at $2\omega$.
+
+- **Biology**: In a lab, complex cells are identified because their "ON" and "OFF" regions are not separated; they overlap entirely. This is the first step the brain takes toward **Object Recognition**, where you need to know "it's a cat" regardless of the cat's exact pixel-coordinates.
+
+
+
+
+
+## 2.6 Receptive Fields in the Retina and LGN
+
+- **Core Idea**: Before the cortex, neurons in the Retina and LGN perform **Contrast Enhancement**. They ignore uniform light and highlight edges using **Center-Surround Antagonism**.
+
+
+- **Difference-of-Gaussians (DoG) kernel:** 
+    - **$B$**: The balance factor. If $B=1$, the cell is perfectly balanced and won't fire for a solid white screen.
+
+$$ D_s(x,y) = \pm \left[ \frac{1}{2\pi\sigma_{cen}^2} e^{-\frac{x^2+y^2}{2\sigma_{cen}^2}} - \frac{B}{2\pi\sigma_{sur}^2} e^{-\frac{x^2+y^2}{2\sigma_{sur}^2}} \right] $$
+
+- **Spatiotemporal Non-Separability:** The center reverses faster than the surround.
+
+- **Biology**: These cells are physically located in the Retina (Ganglion cells) and the Thalamus (LGN). They act as a "High-Pass Filter," removing redundant information (like the blue of a clear sky) so the brain can focus on object boundaries.
+
+
+
+
+## 2.7 Constructing V1 Receptive Fields
+
+- **Core Idea**: This chapter provides the **Wiring Diagram** (The Hubel-Wiesel Model). It explains that visual properties are not "math functions" but are built by specific physical connections.
+
+- **Simple Cell Construction:** A simple cell is the sum of LGN cells arranged in a row. (Gabor kernel)
+
+$$ L = \sum w_i \cdot LGN_i $$ 
+
+- **Complex Cell Construction (Pooling):** summing a "bank" of simple cells with different phases ($0, \pi/2, \pi, 3\pi/2$).
+
+$$ r_{complex} = \sum_{k} r_{simple, k} $$
+
+- **Biology**:
+    - **Simple Cells:** Physically located in Layer 4 of V1. They receive direct "feedforward" input from the LGN.
+    - **Complex Cells:** Physically located in Layers 2/3. They receive input from the Simple cells. 
+    - **Mechanism:** The complex cell is "simpler" than the simple cell because it has no unique spatial kernel; it just sums the outputs of its picky neighbors to achieve stability.
+
+- **Light (Frames)** $\rightarrow$ **Edges (Retina)** $\rightarrow$ **Moving Parts (Simple)** $\rightarrow$ **Stable Orientation (Complex)**. This is the foundation of all mammalian vision.
