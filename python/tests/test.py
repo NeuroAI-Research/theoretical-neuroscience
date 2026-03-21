@@ -1,8 +1,12 @@
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
-from jax import random, vmap
+from jax import jit, lax, random, vmap
+from jax.nn import relu
+from jax.numpy import fft
 from jax.random import PRNGKey
 from jax.scipy.stats import norm
+
+from theoretical_neuroscience.plot import plot1
 
 
 def c3p2_discrimination():
@@ -117,5 +121,69 @@ def c3p3_population_decoding():
     print(f"s_guess2 (max likelihood): {s_guess2:.3f}")
 
 
+# =============================
+
+
+def rand_smooth_curve(key, n, dt, f_cutoff=3):
+    raw = random.normal(key, (n,))
+    # low pass filter
+    freq = fft.rfftfreq(n, dt)
+    LPF = jnp.exp(-0.5 * (freq / f_cutoff) ** 2)
+    return fft.irfft(fft.rfft(raw) * LPF, n)
+
+
+def exp_sin_kernel(dt):
+    t = jnp.arange(0, 0.2, dt)
+    return 15 * jnp.exp(-t / 0.03) * jnp.sin(2 * jnp.pi * 5 * t)
+
+
+@jit
+def get_spikes(key, s, kernel, dt):
+    # linear filter -> relu nonlinearity -> poisson spikes
+    L = jnp.convolve(s, kernel, mode="full")[: len(s)]
+    r = relu(L + 5)
+    return random.poisson(key, r * dt)
+
+
+def get_STA(s, spikes, win=200):
+    spike_idx = jnp.where(spikes > 0)[0]
+    spike_idx = spike_idx[spike_idx > win]
+
+    def get_window(i):
+        return lax.dynamic_slice_in_dim(s, i - win, win)
+
+    windows = vmap(get_window)(spike_idx)
+    spikes = spikes[spike_idx, None]
+    return jnp.sum(windows * spikes, axis=0) / jnp.sum(spikes)
+
+
+def decode_spikes(spikes, sta_kernel):
+    return jnp.convolve(spikes, sta_kernel[::-1], mode="full")[: len(spikes)]
+
+
+def c3p4_spike_train_decoding():
+    key, n, dt = PRNGKey(42), 2000, 1e-3
+
+    s = 50 * rand_smooth_curve(key, n, dt)  # stimulus
+    kernel = exp_sin_kernel(dt)
+    k1, k2 = random.split(key)
+    spikes_h1 = get_spikes(k1, s, kernel, dt)
+    spikes_anti = get_spikes(k2, -s, kernel, dt)
+    sta_kernel = (get_STA(s, spikes_h1) + get_STA(-s, spikes_anti)) / 2
+    s_dec1 = decode_spikes(spikes_h1, sta_kernel)
+    s_dec2 = decode_spikes(spikes_anti, sta_kernel)
+    s_dec = s_dec1 - s_dec2
+
+    plots = {
+        "stimulus": s,
+        "kernel": kernel[::-1],
+        "spikes_h1": spikes_h1,
+        "decoded_stimulus": s_dec,
+        "sta_kernel": sta_kernel,
+        "spikes_anti": spikes_anti,
+    }
+    plot1(plots, "c3p4_spike_train_decoding", C=3)
+
+
 if __name__ == "__main__":
-    c3p3_population_decoding()
+    c3p4_spike_train_decoding()

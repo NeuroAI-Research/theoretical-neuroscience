@@ -96,3 +96,43 @@ $$ s_{ML} = \frac{\sum r_a s_a}{\sum r_a} $$
     - **Fisher Information for Poisson Neurons:** (This shows that neurons contribute most to decoding accuracy where their tuning curves have the **steepest slope**, rather than where their firing rate is highest)
 
 $$ I_F(s) = T \sum_{a=1}^{N} \frac{f'_a(s)^2}{f_a(s)} $$ 
+
+
+
+
+
+
+## 3.4 Spike-Train Decoding
+
+- **The Problem: Static vs. Dynamic Stimuli**
+    - Previous methods in the chapter dealt with "static" stimulus values using spike-count firing rates. However, if a stimulus changes during a trial (like the velocity of a moving object), a simple count doesn't provide enough information to reconstruct the stimulus over time. 
+
+- **The Solution: Linear Reconstruction from Spike Times**
+    - Instead of counting spikes, we treat each spike as a discrete event carrying information about the stimulus. The proposed solution is to **assign a specific "shape" or kernel ($K$) to every spike**. To estimate the stimulus at any given moment, you simply **sum up all these kernels**.
+
+- The Biology: Fly H1 Neurons and "Anti-Neurons" (detects visual motion)
+    - **Half-Wave Rectification:** A single H1 neuron only responds to motion in one direction.
+    - **The "Anti-Neuron" Pair:** To reconstruct full motion, the system uses a pair of neurons (one on each side of the fly). One responds to $s(t)$, and the other to $-s(t)$. 
+    - **Result:** By summing the kernels from the H1 neuron and subtracting the kernels from its "anti-neuron" partner, the fly can accurately track velocity.
+
+- The goal of the math is to find the **optimal kernel** ($K$) that minimizes the squared difference between the estimated stimulus ($s_{est}$) and the actual stimulus ($s$)
+
+- **The Stimulus Estimate** is the sum of kernels minus an offset to ensure the average is zero:
+
+$$ s_{est}(t-\tau_0) = \sum_{i=1}^{n} K(t-t_i) - \langle r \rangle \int_{-\infty}^{\infty} d\tau K(\tau) $$
+
+- **The Optimal Kernel Equation**
+    - To find the best $K$, we solve an integral equation involving the spike-train autocorrelation ($Q_{\rho\rho}$) and the cross-correlation between the rate and the stimulus ($Q_{rs}$):
+
+$$ \int_{-\infty}^{\infty} d\tau' Q_{\rho\rho}(\tau-\tau') K(\tau') = Q_{rs}(\tau-\tau_0) $$
+
+- **Simple Uncorrelated Spikes**
+    - The kernel is simply the **spike-triggered average** ($C$) of the stimulus, shifted by the delay:
+
+$$ K(\tau) = C(\tau_0 - \tau) $$
+
+- **Complex Correlated Spikes: Frequency Domain Solution**
+    - The optimal kernel is found using Fourier transforms ($\tilde{Q}$):
+    - The denominator corrects for biases caused by correlations in the neuron's own firing patterns.
+
+$$ \tilde{K}(\omega) = \frac{\tilde{Q}_{rs}(\omega) \exp(i\omega\tau_0)}{\tilde{Q}_{\rho\rho}(\omega)} $$
