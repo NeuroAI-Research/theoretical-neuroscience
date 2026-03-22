@@ -26,3 +26,14 @@ def read_video(path):
             yield frame
     finally:
         vid.release()
+
+
+def shape(x):
+    if isinstance(x, dict):
+        return {k: shape(v) for k, v in x.items()}
+    if isinstance(x, (list, tuple)):
+        return [shape(v) for v in x]
+    try:
+        return x.shape
+    except Exception:
+        return ""
