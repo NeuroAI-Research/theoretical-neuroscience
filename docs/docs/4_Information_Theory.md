@@ -19,7 +19,7 @@ $$ h(P[r]) = -\log_2 P[r] $$
     - **Maximum Entropy:** Occurs when all responses are equally likely (total unpredictability).
     - **Zero Entropy:** Occurs if the neuron does the exact same thing every single time.
 
-$$ H = \sum_{r} P[r] \; h(P[r]) $$
+$$ H = \sum_{r} P[r] \; h(P[r]) = \int dr \; p(r) \; h(p(r)) $$
 
 - The Noise Problem ($H_{noise}$)
     - Just because a neuron has high entropy (lots of variability) doesn't mean it’s telling us about the world; it might just be noisy. 
@@ -55,3 +55,47 @@ $$ D_{KL}(P || Q) := \sum_{i} P[i] \log_2 \left( \frac{P[i]}{Q[i]} \right) $$
     - When you subtract the two entropies to find $I_m$, this "infinity" cancels out, giving us a clean integral for continuous signals:
 
 $$ I_m = \int ds \int dr \, p[s]p[r|s] \log_2 \left( \frac{p[r|s]}{p[r]} \right) $$
+
+
+
+
+
+## 4.2 Information and Entropy Maximization
+
+- Maximizing Entropy for a Single Neuron
+    - **Under a Maximum Firing Rate Constraint:** If a neuron has a limit $r_{max}$, the mathematical result (found using **Lagrange multipliers**) is that $p[r]$ should be **constant** (a flat distribution). This is known as **histogram equalization**
+
+$$ p[r] = \frac{1}{r_{max}} $$
+    
+- **The Tuning Curve Solution:** To achieve this flat distribution of responses, the neuron’s tuning curve $r = f(s)$ must follow:
+
+$$\begin{aligned}
+\text{Conservation of probability:} & \quad p(r) dr = p(s) ds \\
+\text{And:} & \quad p(r) = \frac{1}{r_{max}} \quad   r \in [0, r_{max}] \\
+\text{So:} & \quad \frac{dr}{ds} = r_{max} \, p(s) \\
+\text{Since } r = f(s) \text{, integrate:} & \quad f(s) = \int_{s_{min}}^{s} r_{max} \, p(s') \, ds' 
+\end{aligned}$$
+
+- Population Coding: Redundancy and Independence
+    - When many neurons are involved, simply maximizing individual entropy isn't enough because they might all send the same information (redundancy)
+    - Total population entropy is maximized when neurons are **statistically independent**
+    - This leads to two conditions for an optimal "factorial code":
+        - **Factorization:** The total probability is the product of individual probabilities: $p[r] = \prod p[r_a]$
+        - **Probability Equalization:** Each neuron's response is individually optimized
+
+- Frequency space: band pass filter
+    - **Whitening**: boost high frequency (since low frequency dominate in natural scenes) to make the spectrum **flat like white noise**.
+    - **Reducing Noise:** In the real world, high-frequency signals are weak and dominated by noise. A pure entropy maximizer would mistakenly "boost" this noise
+    - $\kappa$: spatial frequency
+
+$$ |D_s(\kappa)| \propto \underbrace{\kappa}_{ \text{Whitening Filter} } \cdot \underbrace{ e^{-\alpha \kappa} }_{ \text{Noise Filter} } $$
+
+- Frequency to Space:  Inverse Fourier Transform 
+    - The high-pass part (whitening) creates a sharp positive peak (the "Center").
+    - The low-pass part (noise suppression) creates a broader inhibitory area around it (the "Surround")
+    
+$$ f(x) = A \cdot e^{-\frac{x^2}{2\sigma_{center}^2}} - B \cdot e^{-\frac{x^2}{2\sigma_{surround}^2}} $$
+
+- The Physical Meaning: 
+    - The "Center" $(\sigma_{center})$ is the neuron looking at a spot, and the "Surround" $(\sigma_{surround})$ is the neuron subtracting the average of the neighbors. By subtracting the neighbors, the neuron is **calculating the surprise** — it only fires if the center is different from the surroundings. 
+    - This is the mathematical definition of **Predictive Coding**: don't report what you can already predict from the pixels next door.
