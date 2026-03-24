@@ -99,3 +99,35 @@ $$ f(x) = A \cdot e^{-\frac{x^2}{2\sigma_{center}^2}} - B \cdot e^{-\frac{x^2}{2
 - The Physical Meaning: 
     - The "Center" $(\sigma_{center})$ is the neuron looking at a spot, and the "Surround" $(\sigma_{surround})$ is the neuron subtracting the average of the neighbors. By subtracting the neighbors, the neuron is **calculating the surprise** — it only fires if the center is different from the surroundings. 
     - This is the mathematical definition of **Predictive Coding**: don't report what you can already predict from the pixels next door.
+
+
+
+
+
+## 4.3 Entropy and Information for Spike Trains
+
+- Entropy Rates and Interspike Intervals (ISI)
+    - Entropy in spike trains usually grows linearly with time, so it is reported as an **entropy rate** ($\dot{H}$), measured in **bits per second** or **bits per spike**
+    - If we assume that the intervals between spikes (interspike intervals, $\tau$) are statistically independent, the entropy rate can be bounded by the probability density $p[\tau]$:
+
+$$ \dot{H} \le -\langle r \rangle \int_{0}^{\infty} d\tau \, p[\tau] \log_2(p[\tau]\Delta\tau) $$
+
+- For a homogeneous **Poisson process** (where spikes are truly independent), this becomes an equality:
+
+$$ \dot{H} = \frac{\langle r \rangle}{\ln(2)}(1 - \ln(\langle r \rangle \Delta\tau)) $$
+
+- The Direct Method (Strong et al. Scheme)
+    - To account for correlations between spikes (where one interval affects the next), the "Direct Method" is used 
+    - **Binning**: A spike train is divided into small bins of size $\Delta t$
+    - **Binary Words**: Each bin is assigned a `1` (spike) or `0` (no spike). A sequence of duration $T_s$ becomes a binary "word" $B$
+    - **Probability Calculation**: $P[B]$ is the probability of finding a specific binary sequence anywhere in the recording
+    
+$$ \dot{H} = -\frac{1}{T_s} \sum_{B} P[B] \log_2 P[B] $$
+
+- The Extrapolation Challenge
+    - For any finite dataset, as the sequence length $T_s$ increases, the number of possible binary patterns becomes too large to observe accurately, leading to a "sampling problem" 
+    - **Linear Extrapolation**: To find the true entropy, researchers plot the calculated entropy against $1/T_s$ and extrapolate to the y-intercept (where $1/T_s = 0$, representing an infinite sequence)
+
+- Measuring Mutual Information
+    - **Noise Entropy ($\dot{H}_{noise}$)**: This is calculated by playing the *exact same stimulus* multiple times. Any variation in the neuron's response across these identical trials is considered noise
+    - **Information Rate**: $\dot{H}_{total} - \dot{H}_{noise}$

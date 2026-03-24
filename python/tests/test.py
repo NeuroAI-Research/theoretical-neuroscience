@@ -1,6 +1,9 @@
 import jax.numpy as jnp
 import jax.numpy.fft as F
+import matplotlib.pyplot as plt
+from jax.random import PRNGKey
 
+from theoretical_neuroscience.m1_neural_encoding import poisson_spikes
 from theoretical_neuroscience.plot import plot1
 from theoretical_neuroscience.utils import frame_to_jax, read_video
 
@@ -74,5 +77,59 @@ def c4p2_information_and_entropy_maximization():
     plot1(plots, "c4p2_information_and_entropy_maximization")
 
 
+# ======================================
+
+
+def reshape_seq(long_seq: jnp.ndarray, seq_len):
+    n_seq = len(long_seq) // seq_len
+    return long_seq[: n_seq * seq_len].reshape((n_seq, seq_len))
+
+
+def binary_to_num(binaries: jnp.ndarray):
+    n, bits = binaries.shape
+    powers = 2.0 ** jnp.arange(bits)[::-1]
+    return jnp.dot(binaries, powers)
+
+
+def estimate_probs(values):
+    _, counts = jnp.unique(values, return_counts=True)
+    return counts / len(values)
+
+
+def find_entropy_rate(spikes: jnp.ndarray, seq_len, dt):
+    words = reshape_seq(spikes, seq_len)
+    values = binary_to_num(words)
+    ent = entropy(estimate_probs(values))
+    return ent / (seq_len * dt)
+
+
+def poisson_entropy_rate(rates, dt):
+    avg_rate = jnp.mean(rates)
+    return (avg_rate / jnp.log(2)) * (1 - jnp.log(avg_rate * dt))
+
+
+def c4p3_entropy_and_information_for_spike_trains():
+    key = PRNGKey(42).reshape(1, -1)
+    T, dt = 30_000, 0.003
+    rates = jnp.full(T, 20)
+    seq_lens = jnp.arange(4, 11)
+
+    spikes = poisson_spikes(key, rates, dt)[0]
+
+    ent_rates = []
+    for seq_len in seq_lens:
+        ent_rates.append(find_entropy_rate(spikes, seq_len, dt))
+
+    theory_ent_rate = poisson_entropy_rate(rates, dt)
+
+    plt.plot(seq_lens, ent_rates, ".", label="entropy rate")
+    plt.axhline(theory_ent_rate, label="theory")
+    plt.xlabel("seq_len")
+    plt.ylabel("entropy rate (bits/s)")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig("c4p3_entropy_and_information_for_spike_trains")
+
+
 if __name__ == "__main__":
-    c4p2_information_and_entropy_maximization()
+    c4p3_entropy_and_information_for_spike_trains()
