@@ -93,3 +93,36 @@ $$ \gamma_{v} = \langle P[v|u;G] \rangle \\[5pt]
     - In simple (invertible) models, the E phase is just a math problem we solve. But in complex biological (noninvertible) models, we can't be perfect
     - **Variational Methods**: The brain uses a simplified "shape" for $Q$ (like a set of parameters $W$) and finds the best parameters to get as close as possible to the truth
     - **The Result**: The brain doesn't need to see the "Likelihood" directly. By minimizing its internal "surprise" or discrepancy (Free Energy), it is mathematically guaranteed to learn a better model of the world over time
+
+
+
+
+
+## 10.3 Causal Models for Density Estimation
+
+- The Biology: Sparse Coding and Cortical Neurons
+    - A major biological discovery in this chapter is that standard statistical models (like those used in engineering) don't match how real brain cells behave
+    - **Non-Gaussian Activity:** Many simple models assume neuron activity follows a "Gaussian" (bell curve) distribution. However, recordings from macaque monkeys viewing video shows that neurons in the visual cortex have a **sparse** or "heavy-tailed" distribution 
+    - **Sparseness:** This means that most of the time, a neuron is nearly silent (zero or few spikes), but it occasionally fires very strongly 
+    - **Efficiency:** Biologically, this is efficient because it minimizes interference between different sensory patterns. In the primary visual cortex, there are about 40 cells for every one cell in the preceding stage (the thalamus), allowing for a very "expanded" and sparse representation of visual information
+
+- The Math: Key Models of Inference
+    - The chapter outlines a progression of mathematical models, each adding a layer of complexity to better mimic real-world data.
+
+- Factor Analysis (FA) and PCA
+    - These are linear models where causes are continuous values 
+    - **Factor Analysis:** Seeks a small number of independent causes to explain correlations in the data while ignoring "noise" that only affects individual sensors
+    - **PCA:** A "degenerate" form of Factor Analysis where noise is assumed to be zero. While easier to calculate, PCA is easily "fooled" by high-variance noise, whereas Factor Analysis is more robust
+
+- Sparse Coding
+    - This model replaces Gaussian assumptions with sparse priors (like the **Cauchy** or **double exponential** distributions) 
+    - **The Math:** It uses a "delta rule" to update weights and a time-evolving equation to find the best causes for an input
+    - **Result:** When trained on natural images, the "projective fields" (what the causes look like) resemble Gabor patches — the same orientation-sensitive shapes found in the receptive fields of real cortical cells
+
+- Independent Components Analysis (ICA)
+    - ICA is a specialized version of sparse coding where the number of causes equals the number of inputs, making the recognition process an exact inverse of the generative process
+    - **Application:** It is famous for the "cocktail party" effect—separating mixed signals (like different voices or sounds) into their original, independent sources
+
+- The Helmholtz Machine
+    - The most advanced model discussed, it uses two separate neural networks — one for recognition and one for generation — to handle complex, multi-layer hierarchies. 
+    - This mimics the hierarchical structure of the human visual system, where simple features (lines) are combined into complex objects (faces) across different brain areas
