@@ -2,10 +2,24 @@ site_name: NeuroAI Research
 
 theme:
   name: material
+  features:
+    - content.code.copy # Optional: Adds a copy button to code blocks
+    - content.code.annotate # Optional: Allows for code annotations
 
 markdown_extensions:
   - pymdownx.arithmatex:
       generic: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: true
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
 
 extra_javascript:
   - https://unpkg.com/katex@0.16.7/dist/katex.min.js
