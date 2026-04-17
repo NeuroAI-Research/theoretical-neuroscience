@@ -1,5 +1,7 @@
 # 1 Attention Is All You Need
 
+- The code we used to train and evaluate our models is available at https://github.com/tensorflow/tensor2tensor.
+
 ## Abstract
 
 - The dominant sequence transduction models are based on complex recurrent or convolutional neural networks that include an encoder and a decoder. 
@@ -50,7 +52,7 @@
 
 - The Transformer follows this overall architecture using stacked self-attention and point-wise, fully connected layers for both the encoder and decoder, shown in the left and right halves of Figure 1, respectively.
 
-![](./imgs/01_Transformer_architecture.png){width=400}
+![](../imgs/01_Transformer_architecture.png){width=400}
 
 ### 3.1 Encoder and Decoder Stacks
 
@@ -66,7 +68,7 @@
 
 ### 3.2 Attention
 
-![](./imgs/01_Attention.png)
+![](../imgs/01_Attention.png)
 
 - An attention function can be described as mapping a query and a set of key-value pairs to an output, where the query, keys, values, and output are all vectors. 
 
@@ -173,3 +175,89 @@ $$
     - We chose the sinusoidal version because it may allow the model to extrapolate to sequence lengths longer than the ones encountered during training.
 
 ## 4 Why Self-Attention
+
+![](../imgs/01_Attention_vs_others.png)
+
+- In this section we compare various aspects of self-attention layers to the recurrent and convolutional layers commonly used for mapping one variable-length sequence of symbol representations $(x_1, ..., x_n)$ to another sequence of equal length $(z_1, ..., z_n)$, with $x_i, z_i \in R^d$, such as a hidden layer in a typical sequence transduction encoder or decoder. 
+
+- Motivating our use of self-attention we consider three desiderata.
+    - One is the total computational complexity per layer. 
+    - Another is the amount of computation that can be parallelized, as measured by the minimum number of sequential operations required.
+    - The third is the path length between long-range dependencies in the network. 
+        - Learning long-range dependencies is a key challenge in many sequence transduction tasks. One key factor affecting the ability to learn such dependencies is the length of the paths forward and backward signals have to traverse in the network. The shorter these paths between any combination of positions in the input and output sequences, the easier it is to learn long-range dependencies. 
+        - Hence we also compare the maximum path length between any two input and output positions in networks composed of the different layer types.
+
+- As noted in Table 1, a self-attention layer connects all positions with a constant number of sequentially executed operations, whereas a recurrent layer requires $O(n)$ sequential operations. 
+
+- In terms of computational complexity, self-attention layers are faster than recurrent layers when the sequence length $n$ is smaller than the representation dimensionality $d$, which is most often the case with sentence representations used by state-of-the-art models in machine translations, such as word-piece and byte-pair representations. 
+
+- To improve computational performance for tasks involving very long sequences, self-attention could be restricted to considering only a neighborhood of size $r$ in the input sequence centered around the respective output position. 
+    - This would increase the maximum path length to $O(n/r)$. We plan to investigate this approach further in future work.
+
+- A single convolutional layer with kernel width $k < n$ does not connect all pairs of input and output positions. Doing so requires a stack of $O(n/k)$ convolutional layers in the case of contiguous kernels, or $O(\log_k n)$ in the case of dilated convolutions, increasing the length of the longest paths between any two positions in the network. 
+
+- Convolutional layers are generally more expensive than
+recurrent layers, by a factor of $k$. Separable convolutions, however, decrease the complexity considerably, to $O(k \cdot n \cdot d + n \cdot d^2)$. 
+    - Even with $k = n$, however, the complexity of a separable convolution is equal to the combination of a self-attention layer and a point-wise feed-forward layer, the approach we take in our model.
+
+- As side benefit, self-attention could yield more interpretable models. We inspect attention distributions from our models and present and discuss examples in the appendix. Not only do individual attention heads clearly learn to perform different tasks, many appear to exhibit behavior related to the syntactic and semantic structure of the sentences.
+
+## 5 Training
+
+### 5.1 Training Data and Batching
+
+- We trained on the standard WMT 2014 English-German dataset consisting of about 4.5 million sentence pairs. 
+
+- Sentences were encoded using **byte-pair encoding**, which has a shared source target vocabulary of about 37000 tokens. 
+
+- For English-French, we used the significantly larger WMT 2014 English-French dataset consisting of 36M sentences and split tokens into a 32000 word-piece vocabulary. 
+
+- Sentence pairs were batched together by approximate sequence length. Each training
+batch contained a set of sentence pairs containing approximately 25000 source tokens and 25000 target tokens.
+
+### 5.2 Hardware and Schedule
+
+- We trained our models on one machine with 8 NVIDIA P100 GPUs. For our base models using
+the hyperparameters described throughout the paper, each training step took about 0.4 seconds. We trained the base models for a total of 100,000 steps or 12 hours. For our big models,(described on the bottom line of table 3), step time was 1.0 seconds. The big models were trained for 300,000 steps (3.5 days).
+
+### 5.3 Optimizer
+
+- We used the Adam optimizer with $\beta_1 = 0.9, \beta_2 = 0.98, \epsilon = 10^{-9}$. 
+
+- We varied the learning rate over the course of training, according to the formula:
+
+$$
+lr = d_\text{model}^{-0.5} \cdot \min(
+    \text{step-num}^{-0.5},
+    \text{step-num} \cdot \text{warmup-steps}^{-1.5}
+)
+$$
+
+- This corresponds to increasing the learning rate linearly for the first `warmup_steps` training steps, and decreasing it thereafter proportionally to the inverse square root of the step number. We used
+`warmup_steps = 4000`.
+
+### 5.4 Regularization
+
+- We employ three types of regularization during training:
+    - **Residual Dropout**: 
+        - We apply dropout to the output of each sub-layer, before it is added to the sub-layer input and normalized. 
+        - In addition, we apply dropout to the sums of the embeddings and the positional encodings in both the encoder and decoder stacks. 
+        - For the base model, we use a rate of $P_\text{drop} = 0.1$.
+    - **Label Smoothing**:
+        - During training, we employed label smoothing of value $\epsilon_{ls} = 0.1$. 
+        - This hurts perplexity, as the model learns to be more unsure, but improves accuracy and BLEU score.
+
+## 6 Results
+
+## 7 Conclusion
+
+- In this work, we presented the Transformer, the first sequence transduction model based entirely on attention, replacing the recurrent layers most commonly used in encoder-decoder architectures with multi-headed self-attention.
+
+- For translation tasks, the Transformer can be trained significantly faster than architectures based on recurrent or convolutional layers. 
+
+- On both WMT 2014 English-to-German and WMT 2014 English-to-French translation tasks, we achieve a new state of the art. 
+    - In the former task our best model outperforms even all previously reported ensembles.
+
+- We are excited about the future of attention-based models and plan to apply them to other tasks. 
+    - We plan to extend the Transformer to problems involving input and output modalities other than text and to investigate local, restricted attention mechanisms to efficiently handle large inputs and outputs such as images, audio and video. 
+    - Making generation less sequential is another research goals of ours.
