@@ -235,23 +235,50 @@ $$
 
 ## 4. Pre-Training
 
-- 4.1. Data Construction
-- 4.2. Hyper-Parameters
-- 4.3. Long Context Extension
-- 4.4. Evaluations
-    - 4.4.1. Evaluation Benchmarks
-    - 4.4.2. Evaluation Results
-- 4.5. Discussion
-    - 4.5.1. Ablation Studies for Multi-Token Prediction
-    - 4.5.2. Ablation Studies for the Auxiliary-Loss-Free Balancing Strategy
-    - 4.5.3. Batch-Wise Load Balance VS. Sequence-Wise Load Balance
-
 ## 5. Post-Training
 
-- 5.1. Supervised Fine-Tuning
-- 5.2. Reinforcement Learning
-    - 5.2.1. Reward Model
-    - 5.2.2. Group Relative Policy Optimization
+### 5.1. Supervised Fine-Tuning
+
+### 5.2. Reinforcement Learning
+
+#### 5.2.1. Reward Model
+
+We employ a rule-based Reward Model (RM) and a model-based RM in our RL process.
+
+- **Rule-Based RM.** 
+    - For questions that can be validated using specific rules, we adopt a rule based reward system to determine the feedback. 
+    - For instance, certain math problems have deterministic results, and we require the model to provide the final answer within a designated format (e.g., in a box), allowing us to apply rules to verify the correctness. 
+    - Similarly, for LeetCode problems, we can utilize a compiler to generate feedback based on test cases. 
+    - By leveraging rule-based validation wherever possible, we ensure a higher level of reliability, as this approach is resistant to manipulation or exploitation.
+
+- **Model-Based RM.** 
+    - For questions with free-form ground-truth answers, we rely on the reward model to determine whether the response matches the expected ground-truth. 
+    - Conversely, for questions without a definitive ground-truth, such as those involving creative writing, the reward model is tasked with providing feedback based on the question and the corresponding answer as inputs. 
+    - The reward model is trained from the DeepSeek-V3 SFT checkpoints. 
+    - To enhance its reliability, we construct preference data that not only provides the final reward but also includes the chain-of-thought leading to the reward. This approach helps mitigate the risk of reward hacking in specific tasks.
+
+#### 5.2.2. Group Relative Policy Optimization
+
+- Similar to DeepSeek-V2 (DeepSeek-AI, 2024c), we adopt Group Relative Policy Optimization (GRPO) (Shao et al., 2024), which foregoes the critic model that is typically with the same size as the policy model, and estimates the baseline from group scores instead. 
+    - Specifically, for each question $q$, GRPO samples a group of outputs $\{o_1, ... , o_G\}$ from the old policy model $\pi_{\theta_\text{old}}$ and then optimizes the policy model $\pi_\theta$ by maximizing the following objective:
+    - $\pi_{ref}$: the reference model. $A_i$: advantage. $\{r_i\}_{i=1}^G$: rewards
+
+$$
+J_\text{GRPO}(\theta) = 
+E[ q \sim P(Q), \{o_i\}_{i=1}^G \sim \pi_{\theta_\text{old}} (O|q) ] \\
+{1\over G} \sum_{i=1}^G ( L_\text{PPO} - \beta D_{KL} ( \pi_\theta || \pi_{ref} ) ) \\[5pt]
+L_\text{PPO} = \min( R_i A_i, \text{clip}(R_i, 1-\epsilon, 1+\epsilon) A_i ) \\[5pt]
+R_i = { \pi_\theta (o_i | q) \over \pi_{\theta_\text{old}} (o_i|q) }
+\qquad A_i = { r_i - \text{mean}( \{r_i\} ) \over \text{std}(\{r_i\}) } \\[5pt]
+D_{KL} ( \pi_\theta || \pi_{ref} ) = R_{KL} - \log R_{KL} - 1 \qquad
+R_{KL} = { \pi_{ref}(o_i | q) \over \pi_\theta(o_i | q) }
+$$
+
+- We incorporate prompts from diverse domains, such as coding, math, writing, role-playing, and question answering, during the RL process. 
+    - This approach not only aligns the model more closely with human preferences but also enhances performance on benchmarks, especially in scenarios where available SFT data are limited.
+
+---
+
 - 5.3. Evaluations
     - 5.3.1. Evaluation Settings
     - 5.3.2. Standard Evaluation
@@ -263,3 +290,21 @@ $$
     - 5.4.3. Multi-Token Prediction Evaluation
 
 ## 6. Conclusion, Limitations, and Future Directions
+
+- In this paper, we introduce DeepSeek-V3, a large MoE language model with 671B total parameters and 37B activated parameters, trained on 14.8T tokens. 
+    - In addition to the MLA and DeepSeekMoE architectures, it also pioneers an auxiliary-loss-free strategy for load balancing and sets a multi-token prediction training objective for stronger performance. 
+    - The training of DeepSeek-V3 is cost-effective due to the support of FP8 training and meticulous engineering optimizations. The post-training also makes a success in distilling the reasoning capability from the DeepSeek-R1 series of models. 
+    - Comprehensive evaluations demonstrate that DeepSeek-V3 has emerged as the strongest open-source model currently available, and achieves performance comparable to leading closed-source models like GPT-4o and Claude-3.5-Sonnet. 
+    - Despite its strong performance, it also maintains economical training costs. It requires only 2.788M H800 GPU hours for its full training, including pre-training, context length extension, and post-training.
+
+- While acknowledging its strong performance and cost-effectiveness, we also recognize that DeepSeek-V3 has some limitations, especially on the deployment. 
+    - Firstly, to ensure efficient inference, the recommended deployment unit for DeepSeek-V3 is relatively large, which might pose a burden for small-sized teams. 
+    - Secondly, although our deployment strategy for DeepSeekV3 has achieved an end-to-end generation speed of more than two times that of DeepSeek-V2, there still remains potential for further enhancement. 
+    - Fortunately, these limitations are expected to be naturally addressed with the development of more advanced hardware.
+
+- DeepSeek consistently adheres to the route of open-source models with longtermism, aiming to steadily approach the ultimate goal of AGI (Artificial General Intelligence). In the future, we plan to strategically invest in research across the following directions.
+    - We will consistently study and refine our model architectures, aiming to further improve both the training and inference efficiency, striving to approach efficient support for infinite context length. 
+    - Additionally, we will try to break through the architectural limitations of Transformer, thereby pushing the boundaries of its modeling capabilities.
+    - We will continuously iterate on the quantity and quality of our training data, and explore the incorporation of additional training signal sources, aiming to drive data scaling across a more comprehensive range of dimensions.
+    - We will consistently explore and iterate on the deep thinking capabilities of our models, aiming to enhance their intelligence and problem-solving abilities by expanding their reasoning length and depth.
+    - We will explore more comprehensive and multi-dimensional model evaluation methods to prevent the tendency towards optimizing a fixed set of benchmarks during research, which may create a misleading impression of the model capabilities and affect our foundational assessment.
