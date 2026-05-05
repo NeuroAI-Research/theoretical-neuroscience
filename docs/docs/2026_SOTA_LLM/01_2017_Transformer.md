@@ -131,3 +131,26 @@ $$ q_m^\top k_n = (R_{\Theta, m} q)^\top (R_{\Theta, n} k) = q^\top (R_{\Theta, 
         - **Old Tech:** A neuron's validity was a lonely decision based only on its own value ($f(x)$).
         - **SwiGLU:** A neuron's validity is a **collaborative decision**. One group of neurons provides the content, while another provides the contextual filter, allowing for much more surgical "conditional logic" within the model's internal representations.
     - In 2026, this "Feature Gating" is why SwiGLU models feel significantly more "intelligent" and context-aware than the GPT-3 era models of the same parameter count.
+
+
+
+
+### 2023 GQA: Grouped-Query Attention
+
+- The Core Problem: The Memory Wall
+    - In standard **Multi-Head Attention (MHA)**, every Query head has a corresponding Key and Value head. As context windows grow, the **KV Cache** (storing $K$ and $V$ for all tokens) becomes the primary memory bottleneck, often exceeding the model weights themselves.
+
+- The Solution: 
+    - **MHA (2017):** $H$ Query heads, $H$ Key heads, $H$ Value heads. (Highest quality, highest memory).
+    - **MQA (2019):** $H$ Query heads, **1** Key head, **1** Value head. (Lowest memory, lower quality).
+    - **GQA (2023-2026):** $H$ Query heads, **$G$** Key/Value heads (where $1 < G < H$).
+
+- The Math:
+    - **Grouping:** Divide $H$ Query heads into $G$ groups. Each group size is $S = H/G$.
+    - **Shared Projection:** For each group $g \in \{1 \dots G\}$, all Queries $Q_{g,1} \dots Q_{g,S}$ share the same $K_g$ and $V_g$.
+    - **Broadcasting:** During the attention score calculation:
+    
+    $$ \text{Attention}(Q_{g,s}, K_g, V_g) = \text{softmax}\left(\frac{Q_{g,s} K_g^T}{\sqrt{d_k}}\right) V_g $$
+    
+    - Mathematically, we **broadcast** (repeat) the $K$ and $V$ heads $S$ times to match the $Q$ count before the dot product.
+

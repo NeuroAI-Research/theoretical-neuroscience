@@ -37,7 +37,8 @@ class LLMConf:
     roPE: RoPE
 
     max_T: int = 1000
-    n_head: int = 8
+    n_head: int = 8  # n_query_head
+    n_kv_head: int = 2
     n_layer: int = 3
     d_model: int = 64
     d_ff: int = 64
@@ -81,24 +82,27 @@ class TextEmbed(nnx.Module):
         return x @ W.T
 
 
-class MultiHeadAttention(nnx.Module):
+class GroupedQueryAttention(nnx.Module):
     def __init__(s, c: LLMConf):
         s.c = c
         assert c.d_model % c.n_head == 0
         s.d_head = c.d_model // c.n_head
         s.WQ = c.linear(c.d_model, c.d_model)
-        s.WK = c.linear(c.d_model, c.d_model)
-        s.WV = c.linear(c.d_model, c.d_model)
+        s.WK = c.linear(c.d_model, c.n_kv_head * s.d_head)
+        s.WV = c.linear(c.d_model, c.n_kv_head * s.d_head)
         s.WO = c.linear(c.d_model, c.d_model)
 
     def split_heads(s, x: Array):
         B, T, d_model = x.shape
-        x = x.reshape(B, T, s.c.n_head, s.d_head)
+        x = x.reshape(B, T, -1, s.d_head)
         return x.transpose(0, 2, 1, 3)  # (B, n_head, T, d_head)
 
-    def unsplit_heads(s, x: Array):
+    def merge_heads(s, x: Array):
         B, n_head, T, d_head = x.shape
         return x.transpose(0, 2, 1, 3).reshape(B, T, n_head * d_head)
+
+    def repeat_kv(s, x: Array):
+        return jnp.repeat(x, s.c.n_head // s.c.n_kv_head, axis=1)
 
     def __call__(s, x: Array):
         B, T, d_model = x.shape
@@ -106,11 +110,12 @@ class MultiHeadAttention(nnx.Module):
         q, k, v = map(s.split_heads, (q, k, v))
         # (B, n_head, T, d_head) @ (B, n_head, d_head, T) -> (B, n_head, T, T)
         q, k = map(s.c.roPE, (q, k))
+        k, v = map(s.repeat_kv, (k, v))
         qk = jnp.matmul(q, k.transpose(0, 1, 3, 2)) / jnp.sqrt(s.d_head)
         if s.c.mask is not None:
             qk = jnp.where(s.c.mask[:T, :T], -jnp.inf, qk)
         context = jnp.matmul(softmax(qk, axis=-1), v)
-        return s.WO(s.unsplit_heads(context))
+        return s.WO(s.merge_heads(context))
 
 
 class SwiGLU(nnx.Module):
@@ -125,7 +130,7 @@ class SwiGLU(nnx.Module):
 
 class TransformerBlock(nnx.Module):
     def __init__(s, c: LLMConf):
-        s.attention = MultiHeadAttention(c)
+        s.attention = GroupedQueryAttention(c)
         s.swiGLU = SwiGLU(c)
         s.norm1 = RMSNorm(c.d_model)
         s.norm2 = RMSNorm(c.d_model)
