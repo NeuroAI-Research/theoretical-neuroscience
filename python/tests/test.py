@@ -40,6 +40,8 @@ class LLMConf:
     n_head: int = 8  # n_query_head
     n_kv_head: int = 2
     n_layer: int = 3
+    n_expert: int = 8
+    n_used_expert: int = 2
     d_model: int = 64
     d_ff: int = 64
     dropout = 0.1
@@ -131,17 +133,43 @@ class SwiGLU(nnx.Module):
         return s.W2(silu(s.W1(x)) * s.W3(x))
 
 
+"""
+class MoE(nnx.Module):
+    def __init__(s, c: LLMConf):
+        s.c = c
+        s.router = c.linear(c.d_model, c.n_expert)
+        s.experts = nnx.List([SwiGLU(c) for _ in range(c.n_expert)])
+
+    def __call__(s, x: Array):
+        B, T, d_model = x.shape
+        x_flat = x.reshape(B * T, d_model)
+
+        scores = softmax(s.router(x_flat), axis=-1)  # (BT, n_expert)
+        scores, indices = lax.top_k(scores, s.c.n_used_expert)
+        scores = scores / jnp.sum(scores, axis=-1, keepdims=True)  # re-normalize
+
+        out = jnp.zeros_like(x_flat)
+        for i, expert in enumerate(s.experts):
+            dim0_idx, dim1_idx = jnp.where(indices == i)
+            if len(dim0_idx) > 0:
+                expert_out = expert(x_flat[dim0_idx])  # (N, d_model)
+                weight = scores[dim0_idx, dim1_idx]  # (N,)
+                out = out.at[dim0_idx].add(expert_out * weight[:, None])
+        return out.reshape(B, T, d_model)
+"""
+
+
 class TransformerBlock(nnx.Module):
     def __init__(s, c: LLMConf):
         s.attention = GroupedQueryAttention(c)
-        s.swiGLU = SwiGLU(c)
+        s.ffn = SwiGLU(c)
         s.norm1 = RMSNorm(c.d_model)
         s.norm2 = RMSNorm(c.d_model)
 
     def __call__(s, x: Array):
         # Pre-LayerNorm: more stable gradients than the original Post-LayerNorm
         x = x + s.attention(s.norm1(x))
-        x = x + s.swiGLU(s.norm2(x))
+        x = x + s.ffn(s.norm2(x))
         return x
 
 
