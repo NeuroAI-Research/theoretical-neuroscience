@@ -6,3 +6,4 @@ dist
 temp*
 .vscode
 __pycache__
+docs/site
